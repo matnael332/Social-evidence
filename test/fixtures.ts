@@ -1,5 +1,6 @@
 /** Invented data for tests. Nothing here describes a real person, group or page. */
-import type { EvidenceRecord, PendingCapture, RecordFields } from '../src/domain/types';
+import { sealEntry, type AuditEntry } from '../src/domain/audit';
+import type { Case, EvidenceRecord, PendingCapture, RecordFields } from '../src/domain/types';
 import type { TableLabels } from '../src/domain/table';
 
 export const CAPTURED_AT_MS = Date.UTC(2026, 10, 18, 12, 3, 22);
@@ -17,6 +18,7 @@ export function makePending(overrides: Partial<PendingCapture> = {}): PendingCap
     tabWidth: 1280,
     tabHeight: 720,
     captureMode: 'visible',
+    extracted: { adapter: 'website', adapterVersion: '1', values: { publisher: 'Invented Person' } },
     image: new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }),
     ...overrides,
   };
@@ -58,7 +60,7 @@ export function makeRecord(seq: number, overrides: Partial<EvidenceRecord> = {})
       height: 784,
       captureMode: 'visible',
     },
-    extracted: { adapter: 'website', adapterVersion: '0', values: {} },
+    extracted: { adapter: 'website', adapterVersion: '1', values: {} },
     createdAt: '2026-11-18T14:03:30+02:00',
     updatedAt: '2026-11-18T14:03:30+02:00',
     ...overrides,
@@ -91,3 +93,20 @@ export const LABELS: TableLabels = {
     other: 'Other',
   },
 };
+
+/** The `capture` audit entry for a record, continuing the chain of the given case. */
+export function captureEntry(
+  caseRec: Pick<Case, 'auditCount' | 'auditHead'>,
+  record: EvidenceRecord,
+): Promise<AuditEntry> {
+  return sealEntry({
+    caseId: record.caseId,
+    n: caseRec.auditCount + 1,
+    at: record.createdAt,
+    action: 'capture',
+    recordId: record.id,
+    seq: record.seq,
+    imageSha256: record.image.sha256,
+    prevHash: caseRec.auditHead,
+  });
+}

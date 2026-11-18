@@ -37,10 +37,22 @@ export interface ImageInfo {
   captureMode: CaptureMode;
 }
 
+/** The form fields a page adapter may fill in. */
+export type ExtractedField = 'publisher' | 'groupOrPage' | 'publishedAtText' | 'publishedAt';
+
+export const EXTRACTED_FIELDS: readonly ExtractedField[] = [
+  'publisher',
+  'groupOrPage',
+  'publishedAtText',
+  'publishedAt',
+];
+
+/** What an adapter read from the page, before any user edit. Kept on the record. */
 export interface ExtractedInfo {
   adapter: Platform;
+  /** Bumped whenever an adapter's selectors change. */
   adapterVersion: string;
-  values: Partial<Record<'publisher' | 'groupOrPage' | 'url' | 'publishedAtText', string>>;
+  values: Partial<Record<ExtractedField, string>>;
 }
 
 /** The fields a person types into the form. */
@@ -108,6 +120,8 @@ export interface PendingCapture {
   tabWidth: number;
   tabHeight: number;
   captureMode: CaptureMode;
+  /** Sanitized output of the page adapter. */
+  extracted: ExtractedInfo;
   image: Blob;
 }
 

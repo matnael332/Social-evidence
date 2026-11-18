@@ -77,6 +77,10 @@ describe('buildRecord', () => {
   });
 
   it('remembers what was read from the page before any edit', () => {
-    expect(record.extracted.values.url).toBe('https://social.example/groups/demo/posts/123');
+    expect(record.extracted).toEqual({
+      adapter: 'website',
+      adapterVersion: '1',
+      values: { publisher: 'Invented Person' },
+    });
   });
 });

@@ -65,12 +65,7 @@ export function buildRecord(input: NewRecordInput): EvidenceRecord {
       fileName: imageFileName(seq),
       captureMode: pending.captureMode,
     },
-    // Stage 2 has no adapters yet: the only extracted value is the tab address.
-    extracted: {
-      adapter: pending.platform,
-      adapterVersion: '0',
-      values: { url: pending.pageUrl },
-    },
+    extracted: pending.extracted,
     createdAt: savedAt,
     updatedAt: savedAt,
   };
