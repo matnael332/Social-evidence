@@ -1,0 +1,152 @@
+body {
+  min-inline-size: 300px;
+}
+
+.bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-block-end: 1px solid var(--border);
+}
+
+.bar__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+.bar h1 {
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 12px 12px 72px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty {
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.empty h2 {
+  font-size: 15px;
+}
+
+.empty ol {
+  margin: 8px 0;
+  padding-inline-start: 20px;
+}
+
+.empty li + li {
+  margin-block-start: 6px;
+}
+
+#saved-count {
+  margin: 0;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+.preview {
+  margin: 0;
+}
+
+.preview img {
+  display: block;
+  inline-size: 100%;
+  max-block-size: 260px;
+  object-fit: contain;
+  object-position: top;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.preview figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+  margin-block-start: 4px;
+}
+
+.field {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.field__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.field__hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.field--pair {
+  grid-template-columns: 3fr 2fr;
+  column-gap: 8px;
+}
+
+.field--pair legend {
+  grid-column: 1 / -1;
+  margin-block-end: 3px;
+}
+
+.badge {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.sticky-note {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+
+.actions {
+  position: sticky;
+  inset-block-end: 0;
+  display: flex;
+  gap: 8px;
+  padding-block: 10px;
+  background: var(--bg);
+}
+
+.actions .primary {
+  flex: 1;
+}

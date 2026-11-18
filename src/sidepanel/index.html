@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Post Evidence Capture</title>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="bar__title">
+        <h1 data-i18n="panelTitle"></h1>
+        <span id="case-chip" class="chip"></span>
+      </div>
+      <button id="open-manage" type="button" class="link" data-i18n="openManage"></button>
+    </header>
+
+    <main>
+      <p id="alert" class="alert" role="alert" hidden></p>
+
+      <section id="empty" class="empty">
+        <h2 data-i18n="emptyTitle"></h2>
+        <ol>
+          <li data-i18n="emptyStep1"></li>
+          <li data-i18n="emptyStep2"></li>
+          <li data-i18n="emptyStep3"></li>
+        </ol>
+        <p id="saved-count" class="muted"></p>
+      </section>
+
+      <form id="capture-form" novalidate hidden>
+        <figure class="preview">
+          <img id="preview" alt="" />
+          <figcaption class="muted">
+            <span id="capture-number"></span>
+            <span id="capture-facts" class="ltr"></span>
+          </figcaption>
+        </figure>
+
+        <label class="field">
+          <span class="field__label">
+            <span data-i18n="fieldRecordType"></span>
+            <span class="badge" data-i18n="stickyBadge"></span>
+          </span>
+          <select id="recordType" name="recordType" data-sticky>
+            <option value="post" data-i18n="recordTypePost"></option>
+            <option value="groupAdminPage" data-i18n="recordTypeGroupAdminPage"></option>
+            <option value="profile" data-i18n="recordTypeProfile"></option>
+            <option value="other" data-i18n="recordTypeOther"></option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label" data-i18n="fieldUrl"></span>
+          <input id="url" name="url" type="url" class="ltr" spellcheck="false" autocomplete="off" />
+          <span class="field__hint" data-i18n="fieldUrlHint"></span>
+        </label>
+
+        <label class="field">
+          <span class="field__label" data-i18n="fieldPublisher"></span>
+          <input id="publisher" name="publisher" type="text" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span class="field__label">
+            <span data-i18n="fieldGroupOrPage"></span>
+            <span class="badge" data-i18n="stickyBadge"></span>
+          </span>
+          <input id="groupOrPage" name="groupOrPage" type="text" autocomplete="off" data-sticky />
+        </label>
+
+        <label class="field">
+          <span class="field__label">
+            <span data-i18n="fieldGroupAdmins"></span>
+            <span class="badge" data-i18n="stickyBadge"></span>
+          </span>
+          <textarea id="groupAdmins" name="groupAdmins" rows="2" data-sticky></textarea>
+          <span class="field__hint" data-i18n="fieldGroupAdminsHint"></span>
+        </label>
+
+        <label class="field">
+          <span class="field__label" data-i18n="fieldEchoes"></span>
+          <textarea id="echoes" name="echoes" rows="2"></textarea>
+          <span class="field__hint" data-i18n="fieldEchoesHint"></span>
+        </label>
+
+        <label class="field">
+          <span class="field__label" data-i18n="fieldPublishedAtText"></span>
+          <input
+            id="publishedAtText"
+            name="publishedAtText"
+            type="text"
+            autocomplete="off"
+            data-i18n-placeholder="fieldPublishedAtTextPlaceholder"
+          />
+        </label>
+
+        <fieldset class="field field--pair">
+          <legend class="field__label" data-i18n="fieldPublishedAt"></legend>
+          <input id="publishedDate" name="publishedDate" type="date" data-i18n-label="fieldPublishedDate" />
+          <input id="publishedTime" name="publishedTime" type="time" data-i18n-label="fieldPublishedTime" />
+        </fieldset>
+
+        <label class="field">
+          <span class="field__label">
+            <span data-i18n="fieldKeyword"></span>
+            <span class="badge" data-i18n="stickyBadge"></span>
+          </span>
+          <input id="keyword" name="keyword" type="text" autocomplete="off" data-sticky />
+        </label>
+
+        <label class="field">
+          <span class="field__label" data-i18n="fieldNotes"></span>
+          <textarea id="notes" name="notes" rows="3"></textarea>
+        </label>
+
+        <div class="sticky-note">
+          <span class="muted" data-i18n="stickyHint"></span>
+          <button id="clear-sticky" type="button" class="link" data-i18n="clearSticky"></button>
+        </div>
+
+        <div class="actions">
+          <button id="save" type="submit" class="primary" data-i18n="save"></button>
+          <button id="discard" type="button" data-i18n="discard"></button>
+        </div>
+      </form>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

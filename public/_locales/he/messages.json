@@ -1,0 +1,233 @@
+{
+  "extName": {
+    "message": "Post Evidence Capture"
+  },
+  "extDescription": {
+    "message": "תיעוד פוסטים ברשתות חברתיות בלחיצה אחת: צילום מסך, פרטי הפוסט וייצוא מסודר. הכול נשמר במחשב שלך בלבד."
+  },
+  "actionTitle": {
+    "message": "צילום ותיעוד הדף הנוכחי"
+  },
+  "commandCaptureVisible": {
+    "message": "צילום האזור הגלוי של הלשונית"
+  },
+  "uiLang": {
+    "message": "he"
+  },
+  "uiDir": {
+    "message": "rtl"
+  },
+  "defaultCaseTitle": {
+    "message": "תיק 1"
+  },
+  "panelTitle": {
+    "message": "תיעוד פוסט"
+  },
+  "caseChip": {
+    "message": "תיק: $1"
+  },
+  "openManage": {
+    "message": "ניהול וייצוא"
+  },
+  "emptyTitle": {
+    "message": "מוכן לצילום"
+  },
+  "emptyStep1": {
+    "message": "פתחו את הפוסט בעמוד משלו (לחיצה על התאריך או השעה של הפוסט), כך שכתובת הלשונית תהיה הקישור הישיר לפוסט."
+  },
+  "emptyStep2": {
+    "message": "לחצו על סמל התוסף או על Alt+Shift+S."
+  },
+  "emptyStep3": {
+    "message": "בדקו ותקנו את הפרטים בטופס ולחצו \"שמור\"."
+  },
+  "savedCount": {
+    "message": "מספר הרשומות שנשמרו בתיק: $1"
+  },
+  "provisionalNumber": {
+    "message": "מספר זמני: #$1"
+  },
+  "fieldRecordType": {
+    "message": "סוג רשומה"
+  },
+  "recordTypePost": {
+    "message": "פוסט"
+  },
+  "recordTypeGroupAdminPage": {
+    "message": "עמוד מנהלי קבוצה"
+  },
+  "recordTypeProfile": {
+    "message": "פרופיל"
+  },
+  "recordTypeOther": {
+    "message": "אחר"
+  },
+  "fieldUrl": {
+    "message": "קישור לפוסט"
+  },
+  "fieldUrlHint": {
+    "message": "אם הקישור שונה מכתובת הדף שצולם, הוא יופיע על הצילום בשורה נפרדת עם הציון \"הוזן ידנית\"."
+  },
+  "fieldPublisher": {
+    "message": "שם המפרסם"
+  },
+  "fieldGroupOrPage": {
+    "message": "שם הקבוצה או העמוד"
+  },
+  "fieldGroupAdmins": {
+    "message": "מנהלי הקבוצה"
+  },
+  "fieldGroupAdminsHint": {
+    "message": "שם אחד בכל שורה."
+  },
+  "fieldEchoes": {
+    "message": "מהדהדים"
+  },
+  "fieldEchoesHint": {
+    "message": "פרופילים ששיתפו את הפוסט."
+  },
+  "fieldPublishedAtText": {
+    "message": "תאריך הפרסום כפי שמופיע בדף"
+  },
+  "fieldPublishedAtTextPlaceholder": {
+    "message": "לדוגמה: אתמול ב־14:20"
+  },
+  "fieldPublishedAt": {
+    "message": "תאריך פרסום מנורמל (לא חובה)"
+  },
+  "fieldPublishedDate": {
+    "message": "תאריך הפרסום"
+  },
+  "fieldPublishedTime": {
+    "message": "שעת הפרסום"
+  },
+  "fieldKeyword": {
+    "message": "מילת מפתח"
+  },
+  "fieldNotes": {
+    "message": "הערות"
+  },
+  "stickyBadge": {
+    "message": "קבוע"
+  },
+  "stickyHint": {
+    "message": "שדות המסומנים \"קבוע\" שומרים את הערך האחרון שנשמר גם לצילום הבא."
+  },
+  "clearSticky": {
+    "message": "ניקוי השדות הקבועים"
+  },
+  "save": {
+    "message": "שמור"
+  },
+  "saving": {
+    "message": "שומר…"
+  },
+  "discard": {
+    "message": "ביטול הצילום"
+  },
+  "savedToast": {
+    "message": "נשמר #$1"
+  },
+  "stickyCleared": {
+    "message": "השדות הקבועים נוקו"
+  },
+  "confirmReplaceCapture": {
+    "message": "יש צילום שעדיין לא נשמר. להחליף אותו בצילום החדש?"
+  },
+  "confirmDiscard": {
+    "message": "לבטל את הצילום? הפרטים שהוקלדו יימחקו."
+  },
+  "errorUnsupportedPage": {
+    "message": "אי אפשר לצלם את הדף הזה. התוסף מצלם רק דפי אינטרנט רגילים (http או https)."
+  },
+  "errorCaptureFailed": {
+    "message": "הצילום נכשל. נסו שוב."
+  },
+  "errorSaveFailed": {
+    "message": "השמירה נכשלה. הצילום עדיין כאן, נסו שוב."
+  },
+  "errorPublishedTimeWithoutDate": {
+    "message": "הוזנה שעת פרסום בלי תאריך. הוסיפו תאריך או מחקו את השעה."
+  },
+  "previewAlt": {
+    "message": "תצוגה מקדימה של הצילום עם פס המידע"
+  },
+  "stripPageUrlLabel": {
+    "message": "כתובת הדף בעת הצילום"
+  },
+  "stripManualUrlLabel": {
+    "message": "קישור שהוזן ידנית"
+  },
+  "optionsTitle": {
+    "message": "ניהול תיק"
+  },
+  "localOnlyNote": {
+    "message": "כל המידע נשמר במחשב הזה בלבד. ייצאו את התיק באופן קבוע כדי לשמור עותק מחוץ לדפדפן."
+  },
+  "exportZip": {
+    "message": "ייצוא ZIP"
+  },
+  "exporting": {
+    "message": "מייצא…"
+  },
+  "exportDone": {
+    "message": "הייצוא הושלם: $1"
+  },
+  "exportFailed": {
+    "message": "הייצוא נכשל."
+  },
+  "noRecords": {
+    "message": "עדיין אין רשומות בתיק."
+  },
+  "colImage": {
+    "message": "צילום"
+  },
+  "viewImage": {
+    "message": "הצגה"
+  },
+  "colSeq": {
+    "message": "מספר"
+  },
+  "colCapturedAt": {
+    "message": "תאריך ושעת צילום"
+  },
+  "colPublishedAtText": {
+    "message": "תאריך הפרסום"
+  },
+  "colPublishedAt": {
+    "message": "תאריך הפרסום (מנורמל)"
+  },
+  "colPlatform": {
+    "message": "פלטפורמה"
+  },
+  "colUrl": {
+    "message": "קישור"
+  },
+  "colPublisher": {
+    "message": "שם המפרסם"
+  },
+  "colEchoes": {
+    "message": "מהדהדים"
+  },
+  "colGroupOrPage": {
+    "message": "שם הקבוצה או העמוד"
+  },
+  "colGroupAdmins": {
+    "message": "מנהלי הקבוצה"
+  },
+  "colKeyword": {
+    "message": "מילת מפתח"
+  },
+  "colRecordType": {
+    "message": "סוג רשומה"
+  },
+  "colNotes": {
+    "message": "הערות"
+  },
+  "colFileName": {
+    "message": "שם הקובץ"
+  },
+  "colSha256": {
+    "message": "SHA-256"
+  }
+}
