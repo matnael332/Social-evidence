@@ -1,4 +1,4 @@
-# Post Evidence Capture
+# Social Evidence
 
 A Chrome extension for documenting social media posts as evidence, one click per post.
 

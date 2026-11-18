@@ -1,4 +1,4 @@
-# post-evidence-capture — SPEC v0.2
+# Social Evidence — SPEC v0.3
 
 Status: **approved by the owner.** Stage 2 (MVP) is implemented. Sections that describe later stages say so.
 
@@ -84,7 +84,7 @@ Started by a second shortcut (`Alt+Shift+F`) or by the **צילום עמוד מ�
 
 ### 6.1 Storage
 
-IndexedDB database `post-evidence`, version 1.
+IndexedDB database `social-evidence`, version 1.
 
 | Store | Key | Notes |
 |---|---|---|
@@ -324,7 +324,7 @@ Language: the UI is Hebrew and right-to-left. All strings go through `chrome.i18
 ## 15. Architecture and folders
 
 ```
-post-evidence-capture/
+Social-evidence/
   README.md  SPEC.md  LICENSE  package.json  tsconfig.json  vite.config.ts  vitest.config.ts
   assets/icon.svg                   source of the icons
   public/
@@ -415,7 +415,8 @@ Made by the owner:
 - Publication date: free text as shown, plus an optional normalized date.
 - Sticky fields with a one-click clear button (§13).
 - Noto Sans Hebrew for the strip and the UI.
-- GitHub account for the repository and the demo: `matnael332`.
+- Repository: `matnael332/Social-evidence`, public from stage 2. The project is named Social Evidence everywhere (working name until stage 2: post-evidence-capture).
+- Commit messages carry no AI credit lines.
 
 Defaults, open to change:
 

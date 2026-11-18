@@ -1,5 +1,5 @@
 {
-  "name": "post-evidence-capture",
+  "name": "social-evidence",
   "version": "0.1.0",
   "private": true,
   "description": "Chrome extension for one-click, local-only documentation of social media posts as evidence.",

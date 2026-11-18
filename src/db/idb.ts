@@ -14,7 +14,7 @@ import {
   type StoredImage,
 } from '../domain/types';
 
-export const DB_NAME = 'post-evidence';
+export const DB_NAME = 'social-evidence';
 export const DB_VERSION = 1;
 
 const STORES = {
