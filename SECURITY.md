@@ -17,7 +17,7 @@ That is all. It has no access to any other tab, to your cookies or history, or t
 | A web page attacks the extension through its content | Text from pages is always shown as text, never as markup. Details read from a page are reduced to four known fields, stripped of control and direction-override characters, and limited in length. The CSV neutralizes formulas; the XLSX stores text only. |
 | A page or another extension sends it commands | No web page and no other extension may connect to it. Internal messages are accepted only from the extension's own origin and only in known shapes. |
 | A dependency is compromised | Two runtime dependencies, pinned to exact versions, with install scripts disabled. Even code that got in could not make a request. |
-| A malicious update reaches users | There is no update channel. The extension is not distributed through a store; you install a build you made or chose. |
+| A malicious update reaches users | There is no update channel. The extension is not distributed through a store; you install a build you made, or a release ZIP you chose and can verify. Nothing updates by itself. |
 | A change widens the permissions unnoticed | `npm run check:build` compares the built manifest with the agreed four permissions and the content security policy, and runs in CI on every push. |
 
 ## What does not protect you
@@ -27,6 +27,16 @@ That is all. It has no access to any other tab, to your cookies or history, or t
 - **The audit log by itself.** It makes later changes detectable, not impossible. Someone who can rewrite the whole database can rebuild the log. It is worth something only together with a copy of an export's `hashes.txt` kept outside the computer.
 - **The clock.** Timestamps come from your computer's clock and are not verified by anyone.
 - **Navigation.** The content security policy blocks requests, not navigation to another page. It is one layer of defence, not a guarantee.
+
+## Verifying a release
+
+Each release on GitHub holds `social-evidence-<version>.zip` and a `.sha256` file. Both are produced by the release workflow in this repository (`.github/workflows/release.yml`) from the tagged commit, after the type check, the tests, the build check and the audit of shipped dependencies have passed. To check a download:
+
+```bash
+sha256sum -c social-evidence-<version>.zip.sha256
+```
+
+To be independent of the published ZIP altogether, build from source: `npm ci && npm run build` gives the same extension in `dist/`.
 
 ## Known advisories
 

@@ -1,4 +1,4 @@
-# Social Evidence — SPEC v0.4
+# Social Evidence — SPEC v0.5
 
 Status: **approved by the owner.** Stages 2 and 3 are implemented. Sections that describe later stages say so.
 
@@ -350,10 +350,13 @@ Language: the UI is Hebrew and right-to-left. All strings go through `chrome.i18
 ```
 Social-evidence/
   README.md  SPEC.md  SECURITY.md  LICENSE
+  docs/guide.he.md                  installation and usage guide in Hebrew
+  docs/images/guide/                its screenshots (invented data)
   package.json  .npmrc  tsconfig.json  vite.config.ts  vite.adapter.config.ts  vitest.config.ts
   assets/icon.svg                   source of the icons
   scripts/check-build.mjs           security check of the built extension
   .github/workflows/ci.yml          typecheck, tests, build, build check, audit
+  .github/workflows/release.yml     builds and publishes the ZIP for a version tag
   public/
     manifest.json
     _locales/he/messages.json
@@ -436,6 +439,12 @@ Not tested anywhere: the Facebook, TikTok and Instagram readers on the live site
 5. **README with cover image and GIF, tests complete, cleanup.**
 
 Commits follow the stages. Each stage is pushed to GitHub only after its summary is approved.
+
+**Releases and the user guide** (added after stage 3):
+
+- A version tag `vX.Y.Z` runs `.github/workflows/release.yml`: the same checks as CI, then `social-evidence-X.Y.Z.zip` (the contents of `dist/` at the archive's root) and its `.sha256` are published as a GitHub Release. The tag must match the version in the manifest. No third-party action is used.
+- `docs/guide.he.md` is the installation and usage guide in Hebrew, with screenshots taken on an invented page. It quotes the interface texts from the locale file and Chrome's own Hebrew labels as read from the browser. It is the one document in Hebrew; the README, this specification and `SECURITY.md` stay in English.
+- Chrome ties an unpacked extension's storage to the folder it is loaded from. Checked: replacing the files in the same folder keeps the saved cases; loading the same build from another folder starts empty; removing the extension deletes its data. The guide's update instructions follow from this.
 
 ## 19. Decisions
 

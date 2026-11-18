@@ -2,6 +2,8 @@
 
 A Chrome extension for documenting social media posts as evidence, one click per post.
 
+**מדריך התקנה ושימוש בעברית:** [docs/guide.he.md](docs/guide.he.md)
+
 You browse and search yourself. When a post matters, you press a shortcut: the extension takes a screenshot, stamps it with the page address, the time and a running number, reads what it can about the post from the page, and opens a short form for you to check and complete. Each case exports as a ZIP with numbered images, a matching table, and the hashes to verify them.
 
 > **Status: stage 3 of 5.** Capture, the information strip, page details read automatically, multiple cases, the audit log, the integrity check and the full export work today. Full-page capture, the case dashboard with editing and deletion, and a public demo page follow. The plan is in [SPEC.md](SPEC.md). This README grows into the full version in stage 5.
@@ -13,7 +15,11 @@ You browse and search yourself. When a post matters, you press a shortcut: the e
 
 ## Try it
 
-Requires Node 20 or newer and Chrome 116 or newer.
+Requires Chrome 116 or newer.
+
+**The quick way:** download `social-evidence-<version>.zip` from the [latest release](https://github.com/matnael332/Social-evidence/releases/latest) and extract it to a permanent folder. The ZIP is built by this repository's release workflow from the tagged commit, and its SHA-256 is published next to it. Then continue with the three steps below, selecting the extracted folder.
+
+**From source** (Node 20 or newer):
 
 ```bash
 git clone https://github.com/matnael332/Social-evidence.git
@@ -32,10 +38,12 @@ npm run build
 ```
 
 1. Open `chrome://extensions` and switch on **Developer mode**.
-2. Choose **Load unpacked** and select the `dist` folder.
+2. Choose **Load unpacked** and select the extracted folder, or the `dist` folder if you built from source.
 3. Open any web page and press `Alt+Shift+S`, or click the extension's icon.
 
-The interface is in Hebrew and right-to-left.
+The interface is in Hebrew and right-to-left. A step-by-step guide in Hebrew, with screenshots, is in [docs/guide.he.md](docs/guide.he.md).
+
+Chrome ties an unpacked extension's stored data to the folder it is loaded from. To update, replace the files in that folder and reload; do not remove the extension or load it from another folder, or the saved cases will not come along.
 
 ## How to document a post
 
