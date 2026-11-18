@@ -1,5 +1,6 @@
 .top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -8,14 +9,20 @@
   border-block-end: 1px solid var(--border);
 }
 
-.top__title {
+.top__title,
+.top__actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
 
 .top h1 {
   font-size: 18px;
+}
+
+.back {
+  color: var(--accent);
 }
 
 main {
@@ -29,11 +36,88 @@ main {
   color: var(--muted);
 }
 
-.status {
+.chip--muted {
+  background: var(--border);
+}
+
+/* ------------------------------------------------------------- case cards */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.card--active {
+  border-color: var(--accent);
+}
+
+.card--archived {
+  opacity: 0.75;
+}
+
+.card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h2 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.card__facts {
+  display: grid;
+  gap: 2px;
   margin: 0;
-  color: var(--ok);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ status */
+
+.status {
+  display: grid;
+  gap: 2px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ok);
+  color: var(--text);
+}
+
+.status--bad {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.status p {
+  margin: 0;
+}
+
+.status p:first-child {
   font-weight: 600;
 }
+
+/* ------------------------------------------------------------------- table */
 
 .table-wrap {
   overflow-x: auto;
@@ -78,4 +162,54 @@ td.time {
 td.url {
   max-inline-size: 320px;
   overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------------------------------- dialogs */
+
+dialog {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 18px;
+  inline-size: min(420px, 92vw);
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+dialog form {
+  display: grid;
+  gap: 12px;
+}
+
+dialog h2 {
+  font-size: 16px;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.image-dialog {
+  inline-size: min(1100px, 96vw);
+  max-block-size: 94vh;
+  padding: 12px;
+}
+
+.image-dialog__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 10px;
+}
+
+.image-dialog img {
+  display: block;
+  max-inline-size: 100%;
+  margin-inline: auto;
+  border: 1px solid var(--border);
 }

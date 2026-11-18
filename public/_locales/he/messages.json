@@ -23,9 +23,6 @@
   "panelTitle": {
     "message": "תיעוד פוסט"
   },
-  "caseChip": {
-    "message": "תיק: $1"
-  },
   "openManage": {
     "message": "ניהול וייצוא"
   },
@@ -158,9 +155,6 @@
   "stripManualUrlLabel": {
     "message": "קישור שהוזן ידנית"
   },
-  "optionsTitle": {
-    "message": "ניהול תיק"
-  },
   "localOnlyNote": {
     "message": "כל המידע נשמר במחשב הזה בלבד. ייצאו את התיק באופן קבוע כדי לשמור עותק מחוץ לדפדפן."
   },
@@ -175,9 +169,6 @@
   },
   "exportFailed": {
     "message": "הייצוא נכשל."
-  },
-  "noRecords": {
-    "message": "עדיין אין רשומות בתיק."
   },
   "colImage": {
     "message": "צילום"
@@ -229,5 +220,197 @@
   },
   "colSha256": {
     "message": "SHA-256"
+  },
+  "caseSelectLabel": {
+    "message": "התיק הפעיל"
+  },
+  "newCase": {
+    "message": "תיק חדש"
+  },
+  "caseNamePlaceholder": {
+    "message": "שם התיק"
+  },
+  "create": {
+    "message": "יצירה"
+  },
+  "cancel": {
+    "message": "ביטול"
+  },
+  "close": {
+    "message": "סגירה"
+  },
+  "errorCaseNameEmpty": {
+    "message": "צריך לתת לתיק שם."
+  },
+  "caseCreated": {
+    "message": "התיק \"$1\" נוצר והוא התיק הפעיל"
+  },
+  "extractedBadge": {
+    "message": "מהדף"
+  },
+  "extractedHint": {
+    "message": "שדות שמסומנים \"מהדף\" מולאו אוטומטית. בדקו אותם מול מה שמופיע בדף לפני השמירה."
+  },
+  "permalinkWarning": {
+    "message": "הכתובת לא נראית כמו עמוד של פוסט בודד. פתחו את הפוסט בעמוד משלו (לחיצה על התאריך או השעה שלו) וצלמו שוב, כדי שהקישור והפרטים יהיו של הפוסט הנכון."
+  },
+  "casesTitle": {
+    "message": "התיקים"
+  },
+  "caseTitlePrefix": {
+    "message": "תיק: $1"
+  },
+  "caseActive": {
+    "message": "התיק הפעיל"
+  },
+  "caseArchived": {
+    "message": "בארכיון"
+  },
+  "caseRecords": {
+    "message": "רשומות:"
+  },
+  "caseLastCapture": {
+    "message": "צילום אחרון:"
+  },
+  "caseNoCaptures": {
+    "message": "עדיין אין צילומים"
+  },
+  "caseCreatedAt": {
+    "message": "נוצר:"
+  },
+  "open": {
+    "message": "פתיחה"
+  },
+  "rename": {
+    "message": "שינוי שם"
+  },
+  "makeActive": {
+    "message": "הפיכה לתיק הפעיל"
+  },
+  "archive": {
+    "message": "העברה לארכיון"
+  },
+  "unarchive": {
+    "message": "החזרה מהארכיון"
+  },
+  "archiveActiveBlocked": {
+    "message": "אי אפשר להעביר לארכיון את התיק הפעיל. הפכו קודם תיק אחר לפעיל."
+  },
+  "backToCases": {
+    "message": "כל התיקים"
+  },
+  "renameCaseTitle": {
+    "message": "שינוי שם התיק"
+  },
+  "caseNotFound": {
+    "message": "התיק לא נמצא."
+  },
+  "noRecords": {
+    "message": "עדיין אין רשומות בתיק הזה."
+  },
+  "checkIntegrity": {
+    "message": "בדיקת שלמות"
+  },
+  "checking": {
+    "message": "בודק…"
+  },
+  "integrityOk": {
+    "message": "נבדקו $1 צילומים ו־$2 רשומות ביומן הפעולות. לא נמצאה אי־התאמה."
+  },
+  "integrityFailed": {
+    "message": "בבדיקת השלמות נמצאו אי־התאמות:"
+  },
+  "integrityMissing": {
+    "message": "צילום חסר ברשומות: $1"
+  },
+  "integrityChanged": {
+    "message": "צילום שהשתנה מאז שנשמר, ברשומות: $1"
+  },
+  "integrityUnlogged": {
+    "message": "רשומות שאינן מופיעות ביומן הפעולות: $1"
+  },
+  "integrityChain": {
+    "message": "יומן הפעולות נשבר בשורה $1: $2"
+  },
+  "chainProblemOrder": {
+    "message": "המספור אינו רציף"
+  },
+  "chainProblemLink": {
+    "message": "הקישור לשורה הקודמת שגוי"
+  },
+  "chainProblemHash": {
+    "message": "תוכן השורה שונה מהחתימה שלה"
+  },
+  "chainProblemHead": {
+    "message": "אורך היומן או סופו שונים ממה שרשום בתיק"
+  },
+  "exportChangedImages": {
+    "message": "שימו לב: בצילומים הבאים הקובץ אינו תואם ל־SHA-256 שנשמר בעת הצילום: $1"
+  },
+  "sheetName": {
+    "message": "רשומות"
+  },
+  "readmeTitle": {
+    "message": "Social Evidence – ייצוא תיק"
+  },
+  "readmeCase": {
+    "message": "תיק: $1"
+  },
+  "readmeExportedAt": {
+    "message": "מועד הייצוא: $1"
+  },
+  "readmeCounts": {
+    "message": "רשומות: $1. רשומות שנמחקו: $2."
+  },
+  "readmeFilesHeading": {
+    "message": "הקבצים בארכיון"
+  },
+  "readmeFileImages": {
+    "message": "images/ – צילומי המסך. שם כל קובץ הוא המספר הרץ של הרשומה שלו."
+  },
+  "readmeFileCsv": {
+    "message": "records.csv – טבלת הרשומות, בקידוד UTF-8."
+  },
+  "readmeFileXlsx": {
+    "message": "records.xlsx – אותה טבלה בפורמט Excel."
+  },
+  "readmeFileDeleted": {
+    "message": "deleted.csv – רשומות שנמחקו: מספר, מועד המחיקה ו-SHA-256 של הצילום."
+  },
+  "readmeFileAudit": {
+    "message": "audit-log.csv – יומן הפעולות של התיק. כל שורה כוללת את ה-hash של השורה שלפניה."
+  },
+  "readmeFileHashes": {
+    "message": "hashes.txt – ה-SHA-256 של כל קובץ אחר בארכיון."
+  },
+  "readmeVerifyHeading": {
+    "message": "איך בודקים"
+  },
+  "readmeVerifyHashes": {
+    "message": "ב-Linux, בתיקייה שחולצה: sha256sum -c hashes.txt. ב-macOS: shasum -a 256 -c hashes.txt. ב-Windows (PowerShell): Get-FileHash images\\0001.png -Algorithm SHA256, ולהשוות לשורה המתאימה ב-hashes.txt."
+  },
+  "readmeVerifyAudit": {
+    "message": "ב-audit-log.csv, העמודה entry היא השורה בדיוק כפי שנחתמה. ה-SHA-256 של הטקסט שבה (UTF-8) שווה לעמודה hash, והשדה prevHash שבתוכה שווה ל-hash של השורה הקודמת."
+  },
+  "readmeLimitsHeading": {
+    "message": "מגבלות שחשוב להכיר"
+  },
+  "readmeLimitClock": {
+    "message": "התאריך והשעה נלקחו משעון המחשב שביצע את הצילום. גורם חיצוני לא אימת אותם."
+  },
+  "readmeLimitHash": {
+    "message": "SHA-256 מראה שקובץ לא השתנה מאז שחושב. הוא אינו מוכיח מה הוצג בדף."
+  },
+  "readmeLimitSeen": {
+    "message": "הצילום מראה רק את מה שהוצג למשתמש באותו רגע. חשבון מחובר, פוסט שנמחק או חסימה אזורית משפיעים על כך."
+  },
+  "readmeLimitExtracted": {
+    "message": "פרטים שמולאו אוטומטית מתוך הדף נבדקו ואושרו בידי המשתמש, והם אינם חלק מהצילום עצמו."
+  },
+  "readmeLimitChain": {
+    "message": "ליומן הפעולות יש ערך רק אם עותק של hashes.txt או של הארכיון כולו נשמר מחוץ למחשב."
+  },
+  "readmeLimitLegal": {
+    "message": "הכלי אינו ייעוץ משפטי ואינו מבטיח קבילות. לשימוש בהליך משפטי יש להתייעץ עם עורך דין."
   }
 }

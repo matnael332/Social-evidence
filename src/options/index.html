@@ -6,39 +6,78 @@
     <title>Social Evidence</title>
   </head>
   <body>
-    <header class="top">
-      <div class="top__title">
-        <h1 data-i18n="optionsTitle"></h1>
-        <span id="case-chip" class="chip"></span>
-      </div>
-      <button id="export" type="button" class="primary" data-i18n="exportZip"></button>
-    </header>
+    <!-- Home: every case as a card. -->
+    <section id="home-view" hidden>
+      <header class="top">
+        <h1 data-i18n="casesTitle"></h1>
+        <button id="new-case" type="button" class="primary" data-i18n="newCase"></button>
+      </header>
+      <main>
+        <p class="note" data-i18n="localOnlyNote"></p>
+        <p id="home-alert" class="alert" role="alert" hidden></p>
+        <div id="case-cards" class="cards"></div>
+      </main>
+    </section>
 
-    <main>
-      <p class="note" data-i18n="localOnlyNote"></p>
-      <p id="alert" class="alert" role="alert" hidden></p>
-      <p id="status" class="status" role="status" aria-live="polite" hidden></p>
-      <p id="empty" class="note" data-i18n="noRecords" hidden></p>
+    <!-- One case: its records, export and integrity check. -->
+    <section id="case-view" hidden>
+      <header class="top">
+        <div class="top__title">
+          <a id="back" class="back" href="#/" data-i18n="backToCases"></a>
+          <h1 id="case-title"></h1>
+          <span id="case-active-chip" class="chip" data-i18n="caseActive" hidden></span>
+          <span id="case-archived-chip" class="chip chip--muted" data-i18n="caseArchived" hidden></span>
+        </div>
+        <div class="top__actions">
+          <button id="integrity" type="button" data-i18n="checkIntegrity"></button>
+          <button id="export" type="button" class="primary" data-i18n="exportZip"></button>
+        </div>
+      </header>
+      <main>
+        <p id="case-alert" class="alert" role="alert" hidden></p>
+        <div id="case-status" class="status" role="status" aria-live="polite" hidden></div>
+        <p id="empty" class="note" data-i18n="noRecords" hidden></p>
 
-      <div class="table-wrap">
-        <table id="records" hidden>
-          <thead>
-            <tr>
-              <th data-i18n="colSeq"></th>
-              <th data-i18n="colCapturedAt"></th>
-              <th data-i18n="colPlatform"></th>
-              <th data-i18n="colPublisher"></th>
-              <th data-i18n="colGroupOrPage"></th>
-              <th data-i18n="colKeyword"></th>
-              <th data-i18n="colRecordType"></th>
-              <th data-i18n="colUrl"></th>
-              <th data-i18n="colImage"></th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
+        <div class="table-wrap">
+          <table id="records" hidden>
+            <thead>
+              <tr>
+                <th data-i18n="colSeq"></th>
+                <th data-i18n="colCapturedAt"></th>
+                <th data-i18n="colPlatform"></th>
+                <th data-i18n="colPublisher"></th>
+                <th data-i18n="colGroupOrPage"></th>
+                <th data-i18n="colKeyword"></th>
+                <th data-i18n="colRecordType"></th>
+                <th data-i18n="colUrl"></th>
+                <th data-i18n="colImage"></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </main>
+    </section>
+
+    <dialog id="name-dialog">
+      <form id="name-form" novalidate>
+        <h2 id="name-dialog-title"></h2>
+        <input id="name-input" type="text" autocomplete="off" maxlength="80" data-i18n-placeholder="caseNamePlaceholder" data-i18n-label="caseNamePlaceholder" />
+        <p id="name-error" class="alert" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="submit" class="primary" data-i18n="save"></button>
+          <button id="name-cancel" type="button" data-i18n="cancel"></button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="image-dialog" class="image-dialog">
+      <div class="image-dialog__bar">
+        <strong id="image-title"></strong>
+        <button id="image-close" type="button" data-i18n="close"></button>
       </div>
-    </main>
+      <img id="image-view" alt="" />
+    </dialog>
 
     <script type="module" src="./main.ts"></script>
   </body>

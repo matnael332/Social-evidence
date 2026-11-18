@@ -1,22 +1,27 @@
 /**
  * Side panel: shows the screenshot that was just taken, lets the user correct
- * the details, and saves the finished record.
+ * the details, and saves the finished record into the active case.
  */
 import '@fontsource-variable/noto-sans-hebrew/wght.css';
 import '../shared/base.css';
 import './panel.css';
 
+import { isPostPermalink } from '../adapters/permalink';
 import {
   commitCapture,
+  createCase,
   deletePending,
   ensureCurrentCase,
   getCase,
   getPending,
   getSetting,
+  listCases,
   listPending,
   listRecords,
+  setCurrentCase,
   setSetting,
 } from '../db/idb';
+import { sealEntry } from '../domain/audit';
 import { sha256Hex } from '../domain/hash';
 import { formatSeq } from '../domain/numbering';
 import { buildRecord, normalizeFields, stickyFrom } from '../domain/record';
@@ -28,9 +33,11 @@ import {
 } from '../domain/time';
 import {
   EMPTY_STICKY,
+  EXTRACTED_FIELDS,
   RECORD_TYPES,
   type Case,
   type EvidenceRecord,
+  type ExtractedField,
   type PendingCapture,
   type RecordFields,
   type RecordType,
@@ -40,21 +47,25 @@ import { platformName } from '../platform/detect';
 import { localizePage, t } from '../shared/i18n';
 import {
   LAST_FAILURE_KEY,
+  announceChange,
+  isRuntimeMessage,
+  isTrustedSender,
   type CaptureFailure,
   type PanelPong,
-  type RuntimeMessage,
   type StoredFailure,
 } from '../shared/messages';
 import { composeEvidenceImage, type ComposedImage } from '../watermark/draw';
 import { stripRows, type StripRow } from '../watermark/layout';
 
-const STICKY_KEY = 'stickyFields';
 /** How many times a save restarts when another window took the number first. */
 const MAX_SAVE_ATTEMPTS = 5;
 /** A stored failure older than this is not shown when the panel opens. */
 const FAILURE_FRESH_MS = 15_000;
 const PREVIEW_DEBOUNCE_MS = 350;
 const TOAST_MS = 3500;
+
+/** Sticky form values are remembered per case. */
+const stickyKey = (caseId: string): string => `stickyFields:${caseId}`;
 
 function byId<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -63,7 +74,11 @@ function byId<T extends HTMLElement>(id: string): T {
 }
 
 const els = {
-  caseChip: byId<HTMLSpanElement>('case-chip'),
+  caseSelect: byId<HTMLSelectElement>('case-select'),
+  newCase: byId<HTMLButtonElement>('new-case'),
+  newCaseForm: byId<HTMLFormElement>('new-case-form'),
+  newCaseName: byId<HTMLInputElement>('new-case-name'),
+  newCaseCancel: byId<HTMLButtonElement>('new-case-cancel'),
   openManage: byId<HTMLButtonElement>('open-manage'),
   alert: byId<HTMLParagraphElement>('alert'),
   empty: byId<HTMLElement>('empty'),
@@ -72,6 +87,8 @@ const els = {
   preview: byId<HTMLImageElement>('preview'),
   captureNumber: byId<HTMLSpanElement>('capture-number'),
   captureFacts: byId<HTMLSpanElement>('capture-facts'),
+  permalinkWarning: byId<HTMLParagraphElement>('permalink-warning'),
+  extractedHint: byId<HTMLParagraphElement>('extracted-hint'),
   recordType: byId<HTMLSelectElement>('recordType'),
   url: byId<HTMLInputElement>('url'),
   publisher: byId<HTMLInputElement>('publisher'),
@@ -87,6 +104,14 @@ const els = {
   save: byId<HTMLButtonElement>('save'),
   discard: byId<HTMLButtonElement>('discard'),
   toast: byId<HTMLDivElement>('toast'),
+};
+
+/** The inputs each page-read field is shown in. Editing one removes its "from the page" badge. */
+const EXTRACTED_INPUTS: Record<ExtractedField, readonly HTMLElement[]> = {
+  publisher: [els.publisher],
+  groupOrPage: [els.groupOrPage],
+  publishedAtText: [els.publishedAtText],
+  publishedAt: [els.publishedDate, els.publishedTime],
 };
 
 interface State {
@@ -124,9 +149,9 @@ function render(): void {
   const hasCapture = state.pending !== null;
   els.form.hidden = !hasCapture;
   els.empty.hidden = hasCapture;
-  els.caseChip.textContent = state.caseRec ? t('caseChip', state.caseRec.title) : '';
   els.save.disabled = state.saving;
   els.discard.disabled = state.saving;
+  els.caseSelect.disabled = state.saving;
   els.save.textContent = state.saving ? t('saving') : t('save');
 }
 
@@ -156,6 +181,79 @@ async function refreshSavedCount(): Promise<void> {
   els.savedCount.textContent = t('savedCount', String(records.length));
 }
 
+// ------------------------------------------------------------------ cases
+
+/** Fills the case picker with the open cases and selects the active one. */
+async function renderCases(): Promise<void> {
+  const cases = (await listCases()).filter(
+    (caseRec) => !caseRec.archived || caseRec.id === state.caseRec?.id,
+  );
+  els.caseSelect.replaceChildren(
+    ...cases.map((caseRec) => {
+      const option = document.createElement('option');
+      option.value = caseRec.id;
+      option.textContent = caseRec.title;
+      return option;
+    }),
+  );
+  if (state.caseRec) els.caseSelect.value = state.caseRec.id;
+}
+
+/** Makes a case the active one: new captures, sticky values and the counter follow it. */
+async function activateCase(caseRec: Case): Promise<void> {
+  state.caseRec = caseRec;
+  state.sticky = { ...EMPTY_STICKY, ...(await getSetting<StickyFields>(stickyKey(caseRec.id))) };
+  await renderCases();
+  await refreshSavedCount();
+  if (state.pending && !state.dirty) applySticky(state.sticky);
+  if (state.pending) await refreshPreview();
+}
+
+async function switchCase(caseId: string): Promise<void> {
+  const caseRec = await getCase(caseId);
+  if (!caseRec) return;
+  await setCurrentCase(caseRec.id);
+  await activateCase(caseRec);
+  announceChange();
+}
+
+/** Follows a change made elsewhere, e.g. a case created or renamed on the options page. */
+async function reloadCases(): Promise<void> {
+  const current = await ensureCurrentCase(t('defaultCaseTitle'), nowIso());
+  if (current.id !== state.caseRec?.id) {
+    await activateCase(current);
+  } else {
+    state.caseRec = current;
+    await renderCases();
+    await refreshSavedCount();
+  }
+}
+
+function showNewCaseForm(show: boolean): void {
+  els.newCaseForm.hidden = !show;
+  els.newCase.hidden = show;
+  if (show) {
+    els.newCaseName.value = '';
+    els.newCaseName.focus();
+  }
+}
+
+async function createNewCase(): Promise<void> {
+  const title = els.newCaseName.value.trim();
+  if (title === '') {
+    showAlert(t('errorCaseNameEmpty'));
+    els.newCaseName.focus();
+    return;
+  }
+  showAlert(null);
+  const caseRec = await createCase(title, nowIso());
+  await setCurrentCase(caseRec.id);
+  showNewCaseForm(false);
+  await activateCase(caseRec);
+  announceChange();
+  showToast(t('caseCreated', caseRec.title));
+}
+
 // ------------------------------------------------------------------- form
 
 function isRecordType(value: string): value is RecordType {
@@ -179,16 +277,68 @@ function readFields(): RecordFields {
 
 function applySticky(sticky: StickyFields): void {
   els.recordType.value = sticky.recordType;
-  els.groupOrPage.value = sticky.groupOrPage;
   els.groupAdmins.value = sticky.groupAdmins;
   els.keyword.value = sticky.keyword;
+  // A group name read from this page is more specific than the last saved one.
+  if (!isMarkedExtracted('groupOrPage')) els.groupOrPage.value = sticky.groupOrPage;
 }
 
-/** Starts a fresh form for a capture: sticky values carried over, the rest empty. */
+function badgeFor(field: ExtractedField): HTMLElement | null {
+  return els.form.querySelector<HTMLElement>(`[data-extracted-for="${field}"]`);
+}
+
+function isMarkedExtracted(field: ExtractedField): boolean {
+  return badgeFor(field)?.hidden === false;
+}
+
+function markExtracted(field: ExtractedField, marked: boolean): void {
+  const badge = badgeFor(field);
+  if (badge) badge.hidden = !marked;
+  els.extractedHint.hidden = !EXTRACTED_FIELDS.some(isMarkedExtracted);
+}
+
+/** Puts the values read from the page into the form and marks them for checking. */
+function applyExtracted(pending: PendingCapture): void {
+  const { values } = pending.extracted;
+  for (const field of EXTRACTED_FIELDS) markExtracted(field, false);
+
+  if (values.publisher) {
+    els.publisher.value = values.publisher;
+    markExtracted('publisher', true);
+  }
+  if (values.groupOrPage) {
+    els.groupOrPage.value = values.groupOrPage;
+    markExtracted('groupOrPage', true);
+  }
+  if (values.publishedAtText) {
+    els.publishedAtText.value = values.publishedAtText;
+    markExtracted('publishedAtText', true);
+  }
+  if (values.publishedAt) {
+    const [date = '', time = ''] = values.publishedAt.split('T');
+    els.publishedDate.value = date;
+    els.publishedTime.value = time;
+    markExtracted('publishedAt', true);
+  }
+}
+
+/** Warns when a post is being recorded from an address that is not a single post. */
+function updatePermalinkWarning(): void {
+  const pending = state.pending;
+  const offPermalink =
+    pending !== null &&
+    els.recordType.value === 'post' &&
+    isPostPermalink(pending.platform, pending.pageUrl) === false;
+  els.permalinkWarning.hidden = !offPermalink;
+}
+
+/** Starts a fresh form for a capture: page values and sticky values in, the rest empty. */
 function fillForm(pending: PendingCapture): void {
   els.form.reset();
-  applySticky(state.sticky);
   els.url.value = pending.pageUrl;
+  applyExtracted(pending);
+  applySticky(state.sticky);
+  updatePermalinkWarning();
   state.dirty = false;
 }
 
@@ -318,9 +468,9 @@ async function saveCapture(): Promise<void> {
   try {
     let saved: EvidenceRecord | null = null;
 
-    // The number is burned into the image, so the image is drawn first and the
-    // number is confirmed when writing. If another window saved in between,
-    // start over with the next number. See SPEC.md §6.4.
+    // The number is burned into the image and the audit entry is hashed, so
+    // both are prepared first and confirmed when writing. If another window
+    // saved in between, start over with the next number. See SPEC.md §6.4.
     for (let attempt = 0; attempt < MAX_SAVE_ATTEMPTS && !saved; attempt += 1) {
       const current = await getCase(caseRec.id);
       if (!current) throw new Error('The case no longer exists');
@@ -343,11 +493,22 @@ async function saveCapture(): Promise<void> {
         },
         savedAtMs: Date.now(),
       });
+      const audit = await sealEntry({
+        caseId: current.id,
+        n: current.auditCount + 1,
+        at: record.createdAt,
+        action: 'capture',
+        recordId: record.id,
+        seq,
+        imageSha256: sha256,
+        prevHash: current.auditHead,
+      });
 
       const written = await commitCapture({
         expectedSeq: seq,
         record,
         image: composed.blob,
+        audit,
         pendingId: pending.id,
       });
       if (written) saved = record;
@@ -356,13 +517,14 @@ async function saveCapture(): Promise<void> {
     if (!saved) throw new Error('Could not reserve a running number');
 
     state.sticky = stickyFrom(saved);
-    await setSetting(STICKY_KEY, state.sticky);
+    await setSetting(stickyKey(caseRec.id), state.sticky);
 
     state.pending = null;
     state.dirty = false;
     setPreview(null);
     showToast(t('savedToast', formatSeq(saved.seq)));
     await refreshSavedCount();
+    announceChange();
   } catch (error) {
     console.error('Save failed', error);
     showAlert(t('errorSaveFailed'));
@@ -386,21 +548,36 @@ async function discardCapture(): Promise<void> {
 
 async function clearSticky(): Promise<void> {
   state.sticky = EMPTY_STICKY;
+  markExtracted('groupOrPage', false);
   applySticky(EMPTY_STICKY);
-  await setSetting(STICKY_KEY, EMPTY_STICKY);
+  updatePermalinkWarning();
+  if (state.caseRec) await setSetting(stickyKey(state.caseRec.id), EMPTY_STICKY);
   showToast(t('stickyCleared'));
 }
 
 // ------------------------------------------------------------------- init
+
+const report = (error: unknown): void => {
+  console.error(error);
+  showAlert(String(error));
+};
 
 function bindEvents(): void {
   els.form.addEventListener('submit', (event) => {
     event.preventDefault();
     void saveCapture();
   });
-  els.discard.addEventListener('click', () => void discardCapture());
-  els.clearSticky.addEventListener('click', () => void clearSticky());
+  els.discard.addEventListener('click', () => void discardCapture().catch(report));
+  els.clearSticky.addEventListener('click', () => void clearSticky().catch(report));
   els.openManage.addEventListener('click', () => void chrome.runtime.openOptionsPage());
+
+  els.caseSelect.addEventListener('change', () => void switchCase(els.caseSelect.value).catch(report));
+  els.newCase.addEventListener('click', () => showNewCaseForm(true));
+  els.newCaseCancel.addEventListener('click', () => showNewCaseForm(false));
+  els.newCaseForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void createNewCase().catch(report);
+  });
 
   els.form.addEventListener('input', (event) => {
     const target = event.target as HTMLElement;
@@ -408,10 +585,22 @@ function bindEvents(): void {
     if (!target.hasAttribute('data-sticky')) state.dirty = true;
     // The post link appears on the strip, so the preview follows it.
     if (target === els.url) schedulePreview();
+    if (target === els.recordType) updatePermalinkWarning();
+    // A value the user typed is no longer "from the page".
+    for (const field of EXTRACTED_FIELDS) {
+      if (EXTRACTED_INPUTS[field].includes(target)) markExtracted(field, false);
+    }
   });
 
   chrome.runtime.onMessage.addListener(
-    (message: RuntimeMessage, _sender, sendResponse: (reply: PanelPong) => void) => {
+    (message: unknown, sender, sendResponse: (reply: PanelPong) => void) => {
+      // Only the extension's own service worker and pages are listened to.
+      if (!isTrustedSender(sender, chrome.runtime.id) || !isRuntimeMessage(message)) return;
+
+      if (message.type === 'cases-changed') {
+        void reloadCases().catch(report);
+        return;
+      }
       if (message.windowId !== state.windowId) return;
       if (message.type === 'panel-ping') {
         sendResponse({ open: true });
@@ -431,18 +620,15 @@ async function init(): Promise<void> {
   localizePage();
   els.preview.alt = t('previewAlt');
 
-  const [currentWindow, caseRec, sticky] = await Promise.all([
+  const [currentWindow, caseRec] = await Promise.all([
     chrome.windows.getCurrent(),
     ensureCurrentCase(t('defaultCaseTitle'), nowIso()),
-    getSetting<StickyFields>(STICKY_KEY),
   ]);
   state.windowId = currentWindow.id ?? -1;
-  state.caseRec = caseRec;
-  state.sticky = { ...EMPTY_STICKY, ...sticky };
 
   bindEvents();
   render();
-  await refreshSavedCount();
+  await activateCase(caseRec);
   await showRecentFailure();
   await loadWaitingCapture();
 }

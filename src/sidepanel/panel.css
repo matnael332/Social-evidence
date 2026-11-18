@@ -15,16 +15,32 @@ body {
   border-block-end: 1px solid var(--border);
 }
 
-.bar__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-inline-size: 0;
-}
-
 .bar h1 {
   font-size: 15px;
   white-space: nowrap;
+}
+
+.case-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-block-end: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.case-bar__pick {
+  display: grid;
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+.case-bar__new {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
 }
 
 main {
@@ -65,6 +81,10 @@ main {
 form {
   display: grid;
   gap: 10px;
+}
+
+form > p {
+  margin: 0;
 }
 
 .preview {
@@ -130,6 +150,20 @@ form {
   color: var(--muted);
   font-size: 11px;
   font-weight: 500;
+}
+
+.badge--page {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.notice {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--text);
 }
 
 .sticky-note {

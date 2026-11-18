@@ -12,6 +12,8 @@
   --danger: #b42318;
   --danger-soft: #fdecea;
   --ok: #0f7b4b;
+  --warn: #8a5a00;
+  --warn-soft: #fff4d6;
   --radius: 8px;
   --font: 'Noto Sans Hebrew Variable', 'Noto Sans Hebrew', system-ui, sans-serif;
 }
@@ -29,6 +31,8 @@
     --danger: #ff8a7a;
     --danger-soft: #3a2220;
     --ok: #5fd39a;
+    --warn: #f0c36b;
+    --warn-soft: #3a3118;
   }
 }
 
@@ -39,15 +43,21 @@
 }
 
 html {
-  font-family: var(--font);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
 }
 
+/*
+ * Chrome gives the body of every extension page its own default font and a
+ * reduced size. Setting both here, on the body itself, is what makes the
+ * bundled font and the intended size apply.
+ */
 body {
   margin: 0;
+  font-family: var(--font);
+  font-size: 1rem;
 }
 
 h1,

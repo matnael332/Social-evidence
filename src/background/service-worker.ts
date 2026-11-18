@@ -5,10 +5,11 @@
  * It never acts on its own. Every capture starts from a user gesture, which
  * is also what makes Chrome grant `activeTab` for the tab in question.
  */
+import { emptyExtraction, sanitizeExtracted } from '../adapters/sanitize';
 import { dataUrlToBlob } from '../capture/data-url';
 import { addPending, clearPending, setSetting } from '../db/idb';
 import { localOffsetMinutes, localTimeZone } from '../domain/time';
-import type { PendingCapture } from '../domain/types';
+import type { ExtractedInfo, PendingCapture, Platform } from '../domain/types';
 import { detectPlatform } from '../platform/detect';
 import {
   LAST_FAILURE_KEY,
@@ -112,6 +113,33 @@ async function takeScreenshot(windowId: number): Promise<{ dataUrl: string; capt
   }
 }
 
+/** The page-side reader, built as one self-contained file. */
+const ADAPTER_FILE = 'adapter.js';
+
+/**
+ * Reads the post's details from the page that was just captured.
+ *
+ * The reader runs in the extension's isolated world of that one tab, which
+ * `activeTab` allows only because the user asked for this capture. It runs
+ * after the screenshot, so it cannot affect what the screenshot shows.
+ * Whatever comes back is page content and goes through the sanitizer.
+ */
+async function readPageDetails(tabId: number, platform: Platform): Promise<ExtractedInfo> {
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: [ADAPTER_FILE] });
+    const [injection] = await chrome.scripting.executeScript({
+      target: { tabId },
+      // Self-contained on purpose: this function is sent to the page as text.
+      func: () => globalThis.__socialEvidenceExtract?.() ?? null,
+    });
+    return sanitizeExtracted(injection?.result, platform);
+  } catch (error) {
+    // The capture is still valid without the details; the user types them in.
+    console.warn('Page details could not be read', error);
+    return emptyExtraction(platform);
+  }
+}
+
 async function captureVisible(tab: chrome.tabs.Tab | undefined): Promise<void> {
   if (tab?.id === undefined) return;
   const tabId = tab.id;
@@ -145,6 +173,7 @@ async function captureVisible(tab: chrome.tabs.Tab | undefined): Promise<void> {
     }
 
     const { dataUrl, capturedAtMs } = await takeScreenshot(windowId);
+    const extracted = await readPageDetails(tabId, platform);
     const pending: PendingCapture = {
       windowId,
       tabId,
@@ -156,6 +185,7 @@ async function captureVisible(tab: chrome.tabs.Tab | undefined): Promise<void> {
       tabWidth: current.width ?? 0,
       tabHeight: current.height ?? 0,
       captureMode: 'visible',
+      extracted,
       image: dataUrlToBlob(dataUrl),
     };
     const pendingId = await addPending(pending);
