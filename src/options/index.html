@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Post Evidence Capture</title>
+  </head>
+  <body>
+    <header class="top">
+      <div class="top__title">
+        <h1 data-i18n="optionsTitle"></h1>
+        <span id="case-chip" class="chip"></span>
+      </div>
+      <button id="export" type="button" class="primary" data-i18n="exportZip"></button>
+    </header>
+
+    <main>
+      <p class="note" data-i18n="localOnlyNote"></p>
+      <p id="alert" class="alert" role="alert" hidden></p>
+      <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+      <p id="empty" class="note" data-i18n="noRecords" hidden></p>
+
+      <div class="table-wrap">
+        <table id="records" hidden>
+          <thead>
+            <tr>
+              <th data-i18n="colSeq"></th>
+              <th data-i18n="colCapturedAt"></th>
+              <th data-i18n="colPlatform"></th>
+              <th data-i18n="colPublisher"></th>
+              <th data-i18n="colGroupOrPage"></th>
+              <th data-i18n="colKeyword"></th>
+              <th data-i18n="colRecordType"></th>
+              <th data-i18n="colUrl"></th>
+              <th data-i18n="colImage"></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
