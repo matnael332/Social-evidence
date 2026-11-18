@@ -1,6 +1,6 @@
-# Social Evidence — SPEC v0.3
+# Social Evidence — SPEC v0.4
 
-Status: **approved by the owner.** Stage 2 (MVP) is implemented. Sections that describe later stages say so.
+Status: **approved by the owner.** Stages 2 and 3 are implemented. Sections that describe later stages say so.
 
 ## 1. Goal
 
@@ -52,8 +52,8 @@ Lookalikes such as `facebook.com.evil.example` and `notfacebook.com` map to `web
 1. The user clicks the toolbar icon or presses the shortcut. Chrome grants `activeTab` for that tab.
 2. The service worker opens the side panel if it is closed and waits until the page has settled at its narrower width (§8).
 3. The service worker records the time and the tab address and calls `captureVisibleTab` (PNG).
-4. From stage 3: the adapter for the detected platform runs in the page and returns whatever metadata it finds.
-5. The side panel shows the form with a preview of the image and its strip. Sticky fields carry their last saved values (§13).
+4. The adapter for the detected platform reads the post's details from the page (§9). It runs after the screenshot, so it cannot affect what the screenshot shows.
+5. The side panel shows the form with a preview of the image and its strip. Fields read from the page are marked; sticky fields carry their last saved values (§13).
 6. The user edits and presses **שמור**. The running number is assigned, the strip is drawn, the file is hashed, and everything is written in one transaction (§6.4).
 7. Confirmation: "נשמר #0007".
 
@@ -91,8 +91,8 @@ IndexedDB database `social-evidence`, version 1.
 | `cases` | `id` | |
 | `records` | `id` | indexes: `caseId`; unique `[caseId, seq]` |
 | `images` | `fileId` | PNG `Blob`; kept apart from records so lists do not load pixels |
-| `auditLog` | `[caseId, n]` | one hash chain per case (from stage 3) |
-| `settings` | `key` | current case, sticky form values, last capture failure |
+| `auditLog` | `[caseId, n]` | one hash chain per case |
+| `settings` | `key` | current case, sticky form values per case, last capture failure |
 | `pending` | `id` (auto) | screenshots taken but not saved yet; cleared when the browser starts |
 
 `chrome.storage` is not used.
@@ -160,7 +160,8 @@ interface EvidenceRecord {
 - `fileName` is the zero-padded `seq`: four digits minimum, wider only past 9999.
 - Only the image with the strip is stored. The raw capture is not kept in v1.
 - `publishedAt` is the wall-clock date as the user read it on the page. No timezone is claimed for it.
-- In stage 2 there are no adapters yet: `extracted` holds only the tab address.
+- `extracted.values` may hold `publisher`, `groupOrPage`, `publishedAtText` and `publishedAt`. It keeps what the page said even after the user corrects a field, so the two can be compared later.
+- An adapter never changes the post link: `url` starts as the tab address and changes only when the user edits it.
 
 ### 6.4 Numbering, saving and deletion
 
@@ -185,20 +186,24 @@ interface AuditEntry {
   caseId: string;
   n: number;            // 1-based position in this case's chain
   at: string;           // ISO 8601 with offset
-  action: 'case.create' | 'capture' | 'edit' | 'delete' | 'restore' | 'export';
+  action: 'case.create' | 'case.rename' | 'capture' | 'edit' | 'delete' | 'restore' | 'export';
   recordId?: string;
   seq?: number;
   imageSha256?: string; // on capture and delete
-  changes?: Record<string, { from: string; to: string }>;  // on edit
+  changes?: Record<string, { from: string; to: string }>;  // on edit and rename
+  details?: Record<string, string | number>;                // e.g. counts on export
   prevHash: string;     // hex; 64 zeros for the first entry
-  hash: string;         // sha256(canonicalJson(entry without `hash`))
+  hash: string;         // sha256 of the canonical JSON of all the fields above
 }
 ```
 
-- `canonicalJson` sorts object keys recursively and is a pure function.
-- `verifyChain(entries)` is a pure function that reports the first broken link.
+- Every case starts its chain with a `case.create` entry. The case itself stores the chain's length and newest hash (`auditCount`, `auditHead`).
+- `canonicalJson` sorts object keys recursively, writes no whitespace and accepts only plain JSON values. The hashed text is built from the known fields only.
+- `verifyChain(entries, expected)` reports the first problem: numbering (`order`), a wrong pointer to the previous entry (`link`), content that does not match its hash (`hash`), or a chain that differs from what the case records (`head`).
+- Writes use the same pattern as saving (§6.4): the entry is hashed first, and the transaction checks that the chain has not moved.
 - The chain makes later changes **detectable**. It does not make them impossible: a person with access to the browser profile can rewrite the whole database. The chain has evidential value only if exported hashes are kept somewhere else (§10).
 - An `export` entry is appended before the ZIP is built, so the exported log includes it.
+- Stage 3 writes `case.create`, `case.rename`, `capture` and `export`. `edit`, `delete` and `restore` arrive with those features in stage 4.
 
 ## 7. Information strip (הטבעה)
 
@@ -230,20 +235,25 @@ interface AuditEntry {
 ## 9. Metadata adapters
 
 ```ts
-interface Adapter {
+interface PageAdapter {
   id: Platform;
-  version: string;                                         // bumped whenever selectors change
-  matches(url: URL): boolean;
-  extract(doc: Document, url: URL): Partial<ExtractedFields>;   // never throws
+  version: string;                                    // bumped whenever selectors change
+  extract(doc: Document, url: URL): ExtractedValues;  // publisher, groupOrPage, publishedAtText, publishedAt
 }
 ```
 
-- One file per platform. Fixing a broken selector touches one file.
-- URL parsing (permalink, group id, page name) lives in pure helpers, tested without a DOM.
-- DOM extraction is best-effort. A field that is not found stays empty and the user fills it in.
-- The `website` adapter reads `og:title`, `og:site_name`, `article:published_time`, `meta[name=author]` and `<time datetime>`.
-- The adapter runs once, in the current tab, when the user starts a capture. It reads what is already rendered. It does not click, expand or load anything.
+- One file per platform under `src/adapters/`. Fixing a broken selector touches one file.
+- **URL parsers are exact and pure**: `parseFacebookUrl`, `parseTikTokUrl`, `parseInstagramUrl` classify an address as a post, a group, a profile or neither. `isPostPermalink` uses them for the "one post, one page" warning in the form.
+- **DOM readers are best-effort.** A field that is not found stays empty and the user fills it in.
+  - `website`: `meta[name=author]`, `og:site_name`, `article:published_time`, JSON-LD (`author`, `datePublished`), `<time datetime>`.
+  - `facebook`: author from the first heading link of the first article, group name from the link to the group's root, post date from the date link's label.
+  - `tiktok`: the handle from the address; display name and date from `data-e2e` elements.
+  - `instagram`: the handle from the address or the profile title; date from `<time datetime>`.
+- **How it runs.** The readers are built into one self-contained file, `adapter.js`. After the screenshot, the service worker injects it into the captured tab with `chrome.scripting.executeScript`, in the extension's isolated world, and calls it once. There is no persistent content script. The reader only reads the rendered document: it does not click, scroll, expand or load anything, and it leaves nothing in the page's own JavaScript world.
+- **The result is untrusted.** `sanitizeExtracted` keeps only the four known fields, only strings, removes control characters and direction-override characters, limits length, and accepts a normalized date only in its exact forms. The platform is the one the extension detected from the address, never the one the page claims.
+- A machine-readable date with a timezone is converted to the wall-clock time of the viewing machine, because that is the time the page shows its reader.
 - Test fixtures are **hand-written synthetic HTML**. No HTML saved from a real page enters the repository.
+- **Limit:** the Facebook, TikTok and Instagram readers were written from the general structure of those pages and tested only on invented markup. They have not been checked against the live sites and will need tuning there. The form marks every value they produce so the user checks it.
 
 ## 10. Privacy, ethics and evidential limits
 
@@ -272,34 +282,46 @@ README.txt          how to verify the hashes and the chain; the limits from §10
 hashes.txt          SHA-256 of every other file, in sha256sum format
 ```
 
-Stage 2 writes `images/` and `records.csv`. The other files arrive in stage 3; `deleted.csv` arrives with deletion in stage 4.
+All of these are written since stage 3. `deleted.csv` holds only its header until deletion exists (stage 4).
 
 - Columns, in this order: מספר, תאריך ושעת צילום, תאריך הפרסום, תאריך הפרסום (מנורמל), פלטפורמה, קישור, שם המפרסם, מהדהדים, שם הקבוצה או העמוד, מנהלי הקבוצה, מילת מפתח, סוג רשומה, הערות, שם הקובץ, SHA-256.
 - "תאריך הפרסום (מנורמל)" is the one addition to the owner's column list. It holds the optional normalized date, next to the free text it belongs to.
 - `deleted.csv` is written in every export, with a header row even when nothing was deleted.
 - Capture times are ISO 8601 with offset in both files, so they do not depend on the locale of the machine that opens them.
 - Formula-injection guard: a cell that begins with `=`, `+`, `-`, `@`, tab or carriage return gets a leading `'`.
-- `hashes.txt` can be checked with `sha256sum -c hashes.txt`.
+- `hashes.txt` can be checked with `sha256sum -c hashes.txt`. It lists the hash of each file as exported. If an image no longer matches the hash stored at capture, the export still completes and the options page names the affected records.
+- `audit-log.csv` has the columns `n, at, action, seq, imageSha256, prevHash, hash, entry`. `entry` is the exact text that was hashed, so a row can be checked with any SHA-256 tool: the hash of `entry` equals `hash`, and the `prevHash` inside it equals the previous row's `hash`.
+- `deleted.csv` has the columns `seq, deletedAt, sha256`.
+- `records.xlsx` stores every value as text (the running number as a number), so a spreadsheet never evaluates page text as a formula. The CSV uses the apostrophe guard instead.
+- `README.txt` is UTF-8 with a byte order mark and CRLF line endings: the files, how to verify them, and the limits of §10.
 - The ZIP is written one file at a time, so only one image is in memory at once.
 - Column headers and value names come from the locale file, like every other user-facing string.
-- Libraries: `fflate` for ZIP. The XLSX is written directly as SpreadsheetML inside a ZIP, which avoids a heavy spreadsheet dependency. Library choices are confirmed when Stage 3 starts.
+- Libraries: `fflate` for ZIP. The XLSX is written directly as SpreadsheetML inside a ZIP, which avoids a heavy spreadsheet dependency. Because it is written by hand, all text is XML-escaped and stripped of characters XML does not allow.
 
 ## 12. Options page
 
-Stage 2 has a minimal version: the list of records, a link to view each image, and the export button. The rest arrives in stage 4.
+Implemented in stage 3:
 
-- Table of the records in the selected case, 100 rows per page. Columns: מספר, תאריך, פלטפורמה, מפרסם, קבוצה, מילת מפתח, סוג.
+- **Cases home.** Every case is a card: name, number of records, last capture, creation time. Actions: open, rename, make active, archive and restore. The active case, where new captures go, is marked and cannot be archived.
+- **Case view.** The records in a table, a preview of each image inside the page, **ייצוא ZIP**, and **בדיקת שלמות**.
+- **Integrity check.** Re-hashes every stored image, verifies the audit chain against the case, and checks that every record has a matching `capture` entry. It reports missing images, changed images, records that the log does not know, and the position where the chain breaks.
+
+Stage 4 turns the case view into the dashboard the owner chose:
+
+- A summary row: records, per platform, per record type, top keywords, last capture.
 - Search across the text fields. Filters: platform, record type, capture-date range, deleted or not.
-- A row opens the editor: all fields, image preview, and that record's audit history.
-- Delete with confirmation. Export button per case. Case list with create and archive.
-- A "verify" action runs `verifyChain` and re-hashes the stored images, and reports any mismatch.
+- The table with thumbnails, 100 rows per page.
+- A side editor: all fields, the image, and that record's audit history. Delete with confirmation.
+- An interactive mockup is approved by the owner before this screen is built.
 
 ## 13. Side panel form
 
-- Case selector at the top, with **תיק חדש** (stage 3; stage 2 has one case).
-- Fields from §6.3. Fields filled by the adapter are marked (stage 3). Record type defaults to "פוסט".
+- Case selector at the top, with **תיק חדש**. Switching the case changes where the next capture is saved, the running number and the sticky values.
+- Fields from §6.3. Record type defaults to "פוסט".
+- **Fields read from the page** (publisher, group or page, publication date, normalized date) carry a "מהדף" badge and a line asking the user to check them. Editing a field removes its badge.
+- **Permalink warning:** when the record type is "פוסט" and the tab address is not a single post on Facebook, TikTok or Instagram, the form says so and repeats the workflow rule. It does not block saving.
 - Publication date: a free-text field for the date as the page shows it, and an optional normalized date with an optional time. A time without a date is rejected.
-- **Sticky fields:** record type, group or page name, group admins and keyword keep their last saved values for the next capture. They are marked "קבוע" in the form. One button, **ניקוי השדות הקבועים**, resets all four. The values are stored in `settings` and survive closing the panel.
+- **Sticky fields:** record type, group or page name, group admins and keyword keep their last saved values for the next capture. They are marked "קבוע" in the form. One button, **ניקוי השדות הקבועים**, resets all four. The values are stored per case in `settings` and survive closing the panel. A group name read from the current page takes precedence over the sticky one.
 - Image preview with the strip and the provisional number. The preview is redrawn when the post link changes, because the link can add a row to the strip.
 - Buttons: **שמור**, **ביטול הצילום**, and from stage 4 **צילום עמוד מלא**.
 - A new capture while typed details are unsaved asks before replacing them. Discarding typed details asks too.
@@ -312,71 +334,84 @@ Language: the UI is Hebrew and right-to-left. All strings go through `chrome.i18
 | Permission | Why it is needed |
 |---|---|
 | `activeTab` | Capture the visible tab and run a script in it. Chrome grants it only when the user clicks the icon or presses the shortcut, and only for that tab. |
-| `scripting` | Run the metadata adapter and the full-page scroll step in the current tab. Added in stage 3, when it is first needed. |
+| `scripting` | Run the metadata reader, and from stage 4 the full-page scroll step, in the current tab. Without host permissions it works only on a tab that `activeTab` has just opened up. |
 | `sidePanel` | Show the form beside the page. A popup would close as soon as the user clicks the page. |
 | `unlimitedStorage` | Hundreds of PNG screenshots can exceed the default storage quota. |
 
-- **No host permissions.** No `<all_urls>`, `tabs`, `storage`, `downloads`, `cookies`, `history` or `webRequest`.
+- **No host permissions.** No `<all_urls>`, `tabs`, `storage`, `downloads`, `cookies`, `history` or `webRequest`. No declared content scripts and no web-accessible resources.
+- **Content security policy:** `default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`.
+- `externally_connectable` with an empty list: no other extension and no web page may send messages to this one.
 - Commands: `capture-visible` (`Alt+Shift+S`) and, from stage 4, `capture-full-page` (`Alt+Shift+F`). The user can change both at `chrome://extensions/shortcuts`.
-- Default content security policy. No inline scripts.
 - `minimum_chrome_version`: 116 (side panel can be opened from a user gesture).
+- `npm run check:build` fails when the built manifest differs from this section. See §21.
 
 ## 15. Architecture and folders
 
 ```
 Social-evidence/
-  README.md  SPEC.md  LICENSE  package.json  tsconfig.json  vite.config.ts  vitest.config.ts
+  README.md  SPEC.md  SECURITY.md  LICENSE
+  package.json  .npmrc  tsconfig.json  vite.config.ts  vite.adapter.config.ts  vitest.config.ts
   assets/icon.svg                   source of the icons
+  scripts/check-build.mjs           security check of the built extension
+  .github/workflows/ci.yml          typecheck, tests, build, build check, audit
   public/
     manifest.json
     _locales/he/messages.json
     icons/
   src/
-    background/service-worker.ts    icon click and shortcut, opens the side panel, takes the screenshot
+    background/service-worker.ts    icon click and shortcut, side panel, screenshot, page reader
     capture/data-url.ts             (stage 4: fullpage.ts, stitch.ts)
     watermark/layout.ts  draw.ts
     platform/detect.ts
-    domain/types.ts  numbering.ts  time.ts  hash.ts  csv.ts  table.ts  record.ts  export.ts
-                                    (stage 3: canonicalJson.ts, audit.ts, xlsx.ts)
-    db/idb.ts                       schema, repositories, the save transaction of §6.4
+    adapters/types.ts  dom.ts  website.ts  facebook.ts  tiktok.ts  instagram.ts
+             permalink.ts  sanitize.ts  index.ts  inject.ts
+    domain/types.ts  numbering.ts  time.ts  hash.ts  csv.ts  table.ts  record.ts
+           canonicalJson.ts  audit.ts  xlsx.ts  export.ts  integrity.ts
+    db/idb.ts                       schema, cases, audit chain, the save transaction of §6.4
     shared/i18n.ts  labels.ts  messages.ts  base.css
     sidepanel/index.html  main.ts  panel.css
     options/index.html  main.ts  options.css
-    adapters/                       stage 3
   test/                             unit tests and invented fixtures
   demo/                             GitHub Pages demo (stage 4)
 ```
 
-- **Pure modules** (no DOM, no `chrome.*`): `detect`, `numbering`, `time`, `hash`, `csv`, `table`, `record`, `export`, `watermark/layout`, and later `canonicalJson`, `audit`, `xlsx` and the URL parsers of the adapters.
-- **Build:** Vite with three entries (service worker, side panel, options page) and a copied manifest. TypeScript strict. Node 20 or newer.
+- **Pure modules** (no `chrome.*`): `detect`, `numbering`, `time`, `hash`, `csv`, `table`, `record`, `canonicalJson`, `audit`, `xlsx`, `export`, `integrity`, `watermark/layout`, `adapters/sanitize`, `adapters/permalink` and the URL parsers. The DOM readers need only a `Document`.
+- **Build:** two Vite builds. The main one has three entries (service worker, side panel, options page) and copies the manifest. The second builds `adapter.js` as one self-contained classic script, because it is injected into a page. TypeScript strict. Node 20 or newer.
+- **Dependencies:** two at runtime (`fflate`, the font package). Versions are pinned exactly and install scripts are disabled (`.npmrc`).
 - **Font:** the font files come from the `@fontsource-variable/noto-sans-hebrew` package and are bundled by Vite. No font binary is committed.
 - **Demo page:** an invented social network with invented people and posts, in its own neutral design. It does not imitate the look of a real platform. It carries `og:` tags and `<time>` elements so the `website` adapter has something to extract. README screenshots and the GIF are recorded on this page only.
 
 ## 16. Testing
 
-Vitest unit tests for the pure modules:
+Vitest unit tests (227 at the end of stage 3):
 
 - `detectPlatform`: subdomains, lookalike hosts, mixed case, query strings, non-http schemes.
 - CSV: BOM present, quoting of commas, quotes and newlines, Hebrew text, formula guard.
 - Numbering and file names: sequence, padding, width past 9999, no reuse after deletion.
-- SHA-256: published test vectors (empty input, `abc`).
+- SHA-256: published test vectors.
 - `layoutStrip`: nothing is truncated, shrink before wrap, the manual-link row, labels, strip height.
-- Audit chain: a valid chain verifies; changing one entry is detected.
 - `time`: ISO formatting with offset across a daylight-saving change.
-- Adapters: on synthetic fixtures.
+- `canonicalJson` and the audit chain: a valid chain verifies; a changed, re-hashed, removed, reordered or cut-off entry is detected.
+- XLSX: escaping, characters XML forbids, well-formed XML with hostile text, numbers and inline strings, right-to-left, frozen header.
+- Export: every file present, `hashes.txt` matches the files, the audit table verifies with plain SHA-256, deleted records, a changed image is reported.
+- Integrity check: changed image, missing image, forged record, forged log entry, shortened log.
+- `sanitizeExtracted` and `isRuntimeMessage` / `isTrustedSender`: hostile and malformed input.
+- URL parsers for the three platforms, and the adapters on invented pages (jsdom).
+- Storage on an in-memory IndexedDB: cases, the audit chain under concurrent writes, and two saves racing for one number.
 
-- Storage: the save transaction on an in-memory IndexedDB, including two saves racing for one number.
-- Export: ZIP contents, table columns, file names.
+End-to-end: stages 2 and 3 were checked in headed Chromium with the unpacked build, triggered by the real keyboard shortcut (and in stage 2 also by a real click on the toolbar entry). The stage 3 run made 47 checks: page details read and marked, sticky values, two cases with independent numbering and chains, the permalink warning, requests from the side panel and the service worker blocked by the CSP, rename, integrity check, export verified outside the extension (`sha256sum -c`, the XLSX opened with a spreadsheet library, the audit chain recomputed), and tampering with an image and with a log entry reported. The script is not part of the repository yet; whether it joins as an automated test is decided in stage 5.
 
-End-to-end: stage 2 was checked in headed Chromium with the unpacked build, triggered by the real keyboard shortcut and by a real click on the toolbar entry, at device scale 1 and 2. That run covered capture, form, sticky fields, the manual-link row, discard, replace, the refused browser page, and export with `sha256sum` against the CSV. The script is not part of the repository yet; whether it joins as an automated test is decided in stage 5.
-
-Manual checklist for later stages, on the demo page: full-page capture and cancel, edit, delete, export, then `sha256sum -c hashes.txt` on the extracted ZIP.
+Not tested anywhere: the Facebook, TikTok and Instagram readers on the live sites.
 
 ## 17. Risks
 
 | Risk | Mitigation |
 |---|---|
-| Facebook, TikTok and Instagram change their DOM often and use generated class names | Adapters are isolated and versioned; the version is stored on every record; the form is always editable |
+| Facebook, TikTok and Instagram change their DOM often and use generated class names | Adapters are isolated and versioned; the version is stored on every record; the form is always editable; page-read fields are marked for checking |
+| The readers for the three platforms are unverified on the live sites | Stated in §9 and the README; to be tuned by the owner on real pages |
+| A wrong value read from the page is saved unnoticed | The "מהדף" badge and hint; the original page value is kept on the record next to the saved one |
+| Chrome applies its own default font and size to the body of extension pages | Font and size are set on the body itself (found by the stage 3 end-to-end check) |
+| Development tools carry a known advisory (`picomatch`, via Vite and Vitest) with no compatible fix | Not shipped: the runtime dependencies have no known vulnerability. CI fails only on runtime findings and prints the rest |
 | `captureVisibleTab` captures only the viewport, about twice per second | 600 ms pacing; full-page capture is a separate, explicit action |
 | Opening the side panel narrows the page and needs a live user gesture | Settled in stage 2: the panel opens first, the capture waits for the page to settle, and every screenshot shows the page beside the panel (§8). Keeping the panel open while documenting avoids the wait |
 | `activeTab` is granted by the icon and shortcuts, not by buttons inside the side panel | Every capture starts from the icon or a shortcut. Confirmed in stage 2 for both. A panel button (stage 4) reuses the grant of the current tab, and asks for the shortcut if the grant is gone |
@@ -394,13 +429,13 @@ Manual checklist for later stages, on the demo page: full-page capture and cance
 
 ## 18. Stages
 
-1. **This SPEC** and open questions → approval.
-2. **MVP:** visible capture, strip, form with manual fields, one case, ZIP with images and CSV.
-3. **Adapters, several cases, XLSX, hashes file, audit log.**
-4. **Full-page capture, full options page, demo page.**
-5. **README with cover image and GIF, tests complete, cleanup, summary → approval before anything is pushed.**
+1. **Specification** and open questions → approved.
+2. **MVP:** visible capture, strip, form with manual fields, one case, ZIP with images and CSV → done, published.
+3. **Security hardening, adapters, several cases, XLSX, hashes file, audit log, integrity check** → done.
+4. **Full-page capture, the case dashboard with editing and deletion, demo page.**
+5. **README with cover image and GIF, tests complete, cleanup.**
 
-Commits follow the stages. Nothing is pushed to GitHub without a summary and explicit approval.
+Commits follow the stages. Each stage is pushed to GitHub only after its summary is approved.
 
 ## 19. Decisions
 
@@ -417,6 +452,9 @@ Made by the owner:
 - Noto Sans Hebrew for the strip and the UI.
 - Repository: `matnael332/Social-evidence`, public from stage 2. The project is named Social Evidence everywhere (working name until stage 2: post-evidence-capture).
 - Commit messages carry no AI credit lines.
+- Metadata is read from the page (§9), which adds the `scripting` permission.
+- The form stays in the side panel.
+- Stage 4 management screen: a home of case cards, and inside a case a summary row above the table with a side editor (§12).
 
 Defaults, open to change:
 
@@ -431,3 +469,28 @@ Defaults, open to change:
 ## 20. Open questions
 
 None at the moment. The questions of v0.1 are answered in §19.
+
+## 21. Security model
+
+**What the extension can do.** After the user clicks its icon or presses its shortcut, on that tab only: take a screenshot of the visible area and run its own reader script in the page. At all times: read and write its own local database. Nothing else.
+
+**What it cannot do.** It has no host permissions, so it cannot read or change any page the user did not ask it to capture, and it cannot act in the background. It cannot read cookies, history or other extensions' data. Its content security policy forbids every outbound request from its pages and its service worker.
+
+**Threats and what answers them.**
+
+| Threat | Answer |
+|---|---|
+| A page tries to inject code or markup through its content | The UI writes text only, never HTML. Page data passes `sanitizeExtracted`. CSV has a formula guard; XLSX stores text and escapes XML. File names inside the ZIP come from running numbers only |
+| A page or another extension sends messages to the extension | `externally_connectable` is empty. Every listener checks that the sender is the extension's own origin and that the message has a known shape |
+| A dependency turns malicious | Two runtime dependencies, pinned exactly, install scripts disabled. The CSP blocks requests even from code that got in. `npm run check:build` fails on any network API, remote address or code evaluation in the build |
+| A malicious update is pushed to users | The extension is not distributed through a store and has no update channel. Users install a build they made or chose |
+| A change quietly widens the permissions | `npm run check:build` compares the built manifest with the agreed permissions and CSP, and CI runs it on every push |
+
+**What it cannot protect against.**
+
+- **Access to the computer.** The database is not encrypted. Anyone who can use the user's account on the computer, including malware, can read and change the stored cases. Disk encryption, a separate browser profile for this work, and regular exports kept elsewhere are the answer.
+- **A tampered copy.** Someone who installs a build from another source trusts that source. A build with `scripting` that was altered could act as the user on the tab they capture, at that moment.
+- **Navigation.** The CSP blocks requests, not navigation. It is one layer, not a guarantee.
+- **The limits of §10**: the local clock, and what a hash does and does not show.
+
+`SECURITY.md` repeats this for users and says how to report a problem.
