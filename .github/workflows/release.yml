@@ -1,14 +1,21 @@
 name: Release
 
-# Builds the extension from a version tag and publishes it as a GitHub Release,
-# so people can install it without building it themselves.
+# Builds the extension on GitHub and publishes it as a GitHub Release, so
+# people can install it without building it themselves.
+#
+# Two ways to start it:
+#   - Actions tab > Release > Run workflow, on main, with the version to
+#     publish. The release and its tag are created from that commit.
+#   - Pushing a tag such as v0.3.0.
+#
+# Either way the version must equal the one in the manifest.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
-      tag:
-        description: Existing tag to build and release, for example v0.3.0
+      version:
+        description: Version to publish, as written in the manifest (for example 0.3.0)
         required: true
 
 permissions:
@@ -20,11 +27,15 @@ jobs:
     permissions:
       contents: write
     env:
-      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
     steps:
+      - name: Releases are published from main only
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Run this workflow on main, not on $GITHUB_REF" >&2
+          exit 1
+
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.TAG }}
 
       - uses: actions/setup-node@v4
         with:
@@ -39,11 +50,11 @@ jobs:
       - run: npm run check:build
       - run: npm audit --omit=dev
 
-      - name: Check that the tag matches the version in the manifest
+      - name: Check that the requested version is the one in the manifest
         run: |
           version=$(node -p "require('./dist/manifest.json').version")
           if [ "v$version" != "$TAG" ]; then
-            echo "Tag $TAG does not match the manifest version $version" >&2
+            echo "Requested $TAG, but the manifest says version $version" >&2
             exit 1
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
@@ -63,6 +74,6 @@ jobs:
           gh release create "$TAG" \
             "social-evidence-$VERSION.zip" \
             "social-evidence-$VERSION.zip.sha256" \
-            --verify-tag \
+            --target "$GITHUB_SHA" \
             --title "Social Evidence $VERSION" \
             --notes-file .github/release-notes.md

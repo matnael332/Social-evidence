@@ -30,7 +30,7 @@ That is all. It has no access to any other tab, to your cookies or history, or t
 
 ## Verifying a release
 
-Each release on GitHub holds `social-evidence-<version>.zip` and a `.sha256` file. Both are produced by the release workflow in this repository (`.github/workflows/release.yml`) from the tagged commit, after the type check, the tests, the build check and the audit of shipped dependencies have passed. To check a download:
+Each release on GitHub holds `social-evidence-<version>.zip` and a `.sha256` file. Both are produced on GitHub by the release workflow in this repository (`.github/workflows/release.yml`) from the commit the release's tag points to, after the type check, the tests, the build check and the audit of shipped dependencies have passed. To check a download:
 
 ```bash
 sha256sum -c social-evidence-<version>.zip.sha256
