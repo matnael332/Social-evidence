@@ -1,0 +1,68 @@
+name: Release
+
+# Builds the extension from a version tag and publishes it as a GitHub Release,
+# so people can install it without building it themselves.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and release, for example v0.3.0
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The same checks as CI: a release is never built from code that fails them.
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:build
+      - run: npm audit --omit=dev
+
+      - name: Check that the tag matches the version in the manifest
+        run: |
+          version=$(node -p "require('./dist/manifest.json').version")
+          if [ "v$version" != "$TAG" ]; then
+            echo "Tag $TAG does not match the manifest version $version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      # The files sit at the root of the archive, so the extracted folder is
+      # the one to select in "Load unpacked".
+      - name: Package
+        run: |
+          (cd dist && zip -r -X "../social-evidence-$VERSION.zip" .)
+          sha256sum "social-evidence-$VERSION.zip" > "social-evidence-$VERSION.zip.sha256"
+          cat "social-evidence-$VERSION.zip.sha256"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            "social-evidence-$VERSION.zip" \
+            "social-evidence-$VERSION.zip.sha256" \
+            --verify-tag \
+            --title "Social Evidence $VERSION" \
+            --notes-file .github/release-notes.md
