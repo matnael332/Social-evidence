@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     target: 'chrome116',
     modulePreload: false,
+    // Fonts stay separate files: the extension's CSP allows fonts from 'self' only.
+    assetsInlineLimit: 0,
     sourcemap: mode === 'development',
     rollupOptions: {
       input: {
